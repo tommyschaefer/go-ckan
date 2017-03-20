@@ -57,6 +57,23 @@ func TestNewClient(t *testing.T) {
 	if got, want := c.UserAgent, userAgent; got != want {
 		t.Errorf("NewClient UserAgent is %v, want %v", got, want)
 	}
+
+	testClientServices(t, c)
+}
+
+func testClientServices(t *testing.T, c *Client) {
+	services := []string{
+		"Packages",
+	}
+
+	cp := reflect.ValueOf(c)
+	cv := reflect.Indirect(cp)
+
+	for _, s := range services {
+		if cv.FieldByName(s).IsNil() {
+			t.Errorf("c.%s shouldn't be nil", s)
+		}
+	}
 }
 
 func TestNewRequest(t *testing.T) {
@@ -191,5 +208,72 @@ func TestDo_responseError(t *testing.T) {
 	}
 	if err, ok := err.(*Error); !ok {
 		t.Errorf("Expected ckan error, got %+v", err)
+	}
+}
+
+func TestAddOptions(t *testing.T) {
+	cases := []struct {
+		name     string
+		path     string
+		expected string
+		opts     *ListOptions
+		isErr    bool
+	}{
+		{
+			name:     "add option",
+			path:     "/action",
+			expected: "/action?limit=10",
+			opts:     &ListOptions{Limit: 10},
+			isErr:    false,
+		},
+		{
+			name:     "add options",
+			path:     "/action",
+			expected: "/action?limit=5&offset=10",
+			opts:     &ListOptions{Limit: 5, Offset: 10},
+			isErr:    false,
+		},
+		{
+			name:     "add options with existing parameters",
+			path:     "/action?scope=all",
+			expected: "/action?limit=10&scope=all",
+			opts:     &ListOptions{Limit: 10},
+			isErr:    false,
+		},
+	}
+
+	for _, c := range cases {
+		got, err := addOptions(c.path, c.opts)
+		if c.isErr && err == nil {
+			t.Errorf("%q expected error but none was encountered", c.name)
+			continue
+		}
+
+		if !c.isErr && err != nil {
+			t.Errorf("%q unexpected error: %v", c.name, err)
+			continue
+		}
+
+		gotURL, err := url.Parse(got)
+		if err != nil {
+			t.Errorf("%q unable to parse returned URL", c.name)
+			continue
+		}
+
+		expectedURL, err := url.Parse(c.expected)
+		if err != nil {
+			t.Errorf("%q unable to parse expected URL", c.name)
+			continue
+		}
+
+		if g, e := gotURL.Path, expectedURL.Path; g != e {
+			t.Errorf("%q path = %q; expected %q", c.name, g, e)
+			continue
+		}
+
+		if g, e := gotURL.Query(), expectedURL.Query(); !reflect.DeepEqual(g, e) {
+			t.Errorf("%q query = %#v; expected %#v", c.name, g, e)
+			continue
+		}
 	}
 }

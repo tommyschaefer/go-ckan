@@ -7,6 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
+
+	"github.com/google/go-querystring/query"
 )
 
 const (
@@ -25,6 +28,13 @@ type Client struct {
 
 	// User agent for client
 	UserAgent string
+
+	// Services used for communicating with the API
+	Packages *PackagesService
+}
+
+type service struct {
+	client *Client
 }
 
 // NewClient returns a new CKAN API client.
@@ -38,7 +48,10 @@ func NewClient(baseURL string, httpClient *http.Client) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{client: httpClient, BaseURL: u, UserAgent: userAgent}, nil
+	c := &Client{client: httpClient, BaseURL: u, UserAgent: userAgent}
+	c.Packages = &PackagesService{c}
+
+	return c, nil
 }
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
@@ -153,4 +166,45 @@ type Error struct {
 
 func (e *Error) Error() string {
 	return e.Message
+}
+
+// ListOptions specifies the optional parameters to various List methods that
+// support pagination.
+type ListOptions struct {
+	// For long result sets, limit can be used to limit the number of
+	// list objects that will be returned.
+	Limit int `url:"limit,omitempty"`
+
+	// When used with limit, offset can be used to page through API list
+	// objects.
+	Offset int `url:"offset,omitempty"`
+}
+
+// addOptions takes a given path and uses the provided options to build a new
+// query path.
+func addOptions(s string, opt interface{}) (string, error) {
+	v := reflect.ValueOf(opt)
+
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return s, nil
+	}
+
+	origURL, err := url.Parse(s)
+	if err != nil {
+		return s, err
+	}
+
+	origValues := origURL.Query()
+
+	newValues, err := query.Values(opt)
+	if err != nil {
+		return s, err
+	}
+
+	for k, v := range newValues {
+		origValues[k] = v
+	}
+
+	origURL.RawQuery = origValues.Encode()
+	return origURL.String(), nil
 }
