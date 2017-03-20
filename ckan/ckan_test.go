@@ -36,8 +36,7 @@ func setup() {
 	server = httptest.NewServer(mux)
 
 	// CKAN client configured to use test server
-	url, _ := url.Parse(server.URL)
-	client = NewClient(url, nil)
+	client, _ = NewClient(server.URL, nil)
 }
 
 // teardown closes the test HTTP server.
@@ -46,25 +45,25 @@ func teardown() {
 }
 
 func TestNewClient(t *testing.T) {
-	setup()
-	defer teardown()
+	u := "http://demo.ckan.org/api/3/"
+	c, err := NewClient(u, nil)
+	if err != nil {
+		t.Errorf("Expected NewClient to return no errors, but got: %v", err)
+	}
 
-	if got, want := client.BaseURL.String(), server.URL; got != want {
+	if got, want := c.BaseURL.String(), u; got != want {
 		t.Errorf("NewClient BaseURL is %v, want %v", got, want)
 	}
-	if got, want := client.UserAgent, userAgent; got != want {
+	if got, want := c.UserAgent, userAgent; got != want {
 		t.Errorf("NewClient UserAgent is %v, want %v", got, want)
 	}
 }
 
 func TestNewRequest(t *testing.T) {
-	u, err := url.Parse("http://demo.ckan.org/api/3/")
-	if err != nil {
-		t.Errorf("Unable to parse test URL: %v", err)
-	}
-	c := NewClient(u, nil)
+	u := "http://demo.ckan.org/api/3/"
+	c, _ := NewClient(u, nil)
 
-	inURL, outURL := "foo", u.String()+"foo"
+	inURL, outURL := "foo", u+"foo"
 	inBody, outBody := &testRequest{Value: "test"}, `{"val":"test"}`+"\n"
 	req, _ := c.NewRequest("GET", inURL, inBody)
 
@@ -86,16 +85,12 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequest_invalidJSON(t *testing.T) {
-	u, err := url.Parse("http://demo.ckan.org/api/3/")
-	if err != nil {
-		t.Errorf("Unable to parse test URL: %v", err)
-	}
-	c := NewClient(u, nil)
+	c, _ := NewClient("http://demo.ckan.org/api/3/", nil)
 
 	type T struct {
 		A map[interface{}]interface{}
 	}
-	_, err = c.NewRequest("GET", "/", &T{})
+	_, err := c.NewRequest("GET", "/", &T{})
 
 	if err == nil {
 		t.Error("Expected error to be returned.")
@@ -106,13 +101,9 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 }
 
 func TestNewRequest_badURL(t *testing.T) {
-	u, err := url.Parse("http://demo.ckan.org/api/3/")
-	if err != nil {
-		t.Errorf("Unable to parse test URL: %v", err)
-	}
-	c := NewClient(u, nil)
+	c, _ := NewClient("http://demo.ckan.org/api/3/", nil)
 
-	_, err = c.NewRequest("GET", ":", nil)
+	_, err := c.NewRequest("GET", ":", nil)
 	if err == nil {
 		t.Errorf("Expected error to be returned")
 	}
@@ -128,11 +119,7 @@ func TestNewRequest_badURL(t *testing.T) {
 // certain cases, intermediate systems may treat these differently resulting in
 // subtle errors.
 func TestNewRequest_emptyBody(t *testing.T) {
-	u, err := url.Parse("http://demo.ckan.org/api/3/")
-	if err != nil {
-		t.Errorf("Unable to parse test URL: %v", err)
-	}
-	c := NewClient(u, nil)
+	c, _ := NewClient("http://demo.ckan.org/api/3/", nil)
 
 	req, err := c.NewRequest("GET", "/", nil)
 	if err != nil {

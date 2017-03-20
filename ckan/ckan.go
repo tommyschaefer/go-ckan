@@ -27,26 +27,18 @@ type Client struct {
 	UserAgent string
 }
 
-// // An ErrorResponse reports the error caused by an API request
-// type ErrorResponse struct {
-// 	// HTTP response that caused this error
-// 	Response *http.Response
-
-// 	// Error message
-// 	Message string `jsonon:"message"`
-
-// 	// RequestID returned from the API, useful to contact stringupport.
-// 	RequestID string `json:"request_id"`
-// }
-
 // NewClient returns a new CKAN API client.
-func NewClient(baseURL *url.URL, httpClient *http.Client) *Client {
+func NewClient(baseURL string, httpClient *http.Client) (*Client, error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
-	c := &Client{client: httpClient, BaseURL: baseURL, UserAgent: userAgent}
-	return c
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{client: httpClient, BaseURL: u, UserAgent: userAgent}, nil
 }
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
