@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRegions_List(t *testing.T) {
+func TestPackages_List(t *testing.T) {
 	setup()
 	defer teardown()
 
@@ -30,7 +30,7 @@ func TestRegions_List(t *testing.T) {
 	}
 }
 
-func TestRegions_List_withListOptions(t *testing.T) {
+func TestPackages_List_withListOptions(t *testing.T) {
 	setup()
 	defer teardown()
 

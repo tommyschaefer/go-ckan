@@ -64,6 +64,7 @@ func TestNewClient(t *testing.T) {
 func testClientServices(t *testing.T, c *Client) {
 	services := []string{
 		"Packages",
+		"DataStore",
 	}
 
 	cp := reflect.ValueOf(c)

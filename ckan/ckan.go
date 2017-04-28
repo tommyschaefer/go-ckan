@@ -30,7 +30,8 @@ type Client struct {
 	UserAgent string
 
 	// Services used for communicating with the API
-	Packages *PackagesService
+	DataStore *DataStoreService
+	Packages  *PackagesService
 }
 
 type service struct {
@@ -49,6 +50,7 @@ func NewClient(baseURL string, httpClient *http.Client) (*Client, error) {
 	}
 
 	c := &Client{client: httpClient, BaseURL: u, UserAgent: userAgent}
+	c.DataStore = &DataStoreService{c}
 	c.Packages = &PackagesService{c}
 
 	return c, nil
